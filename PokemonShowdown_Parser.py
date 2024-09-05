@@ -10,7 +10,11 @@ class PokemonNode:
     def __str__(self):
         return self.name
 
-# python doesn't have dictionaries??
+    def getTeammates(self):
+        return len(self.teammates)
+
+    def getTeammates(self):
+        return self.teammates
 all_pokemon_dict = {}
 
 def clean_padding(line):
@@ -33,6 +37,16 @@ def read_check_counter(f, barline):
     # do more stats with this line
     return counter_name, 0, 0, 0
 
+def read_teammate(f, barline):
+    line = f.readline()
+    if line == barline:
+        return "fin", 0
+    line = clean_padding(line)
+    name_end = re.search(r"\d", line).start() -1
+    teammate_name = line[0 : name_end]
+    # do more stats with this line
+    return teammate_name, 0
+
 
 with open("gen9ou-1695.txt", "r") as f:
     active_pokemon = " "
@@ -41,8 +55,7 @@ with open("gen9ou-1695.txt", "r") as f:
     line = f.readline() # should have first mon with some padding
     line = (clean_padding(line))
     active_pokemon = PokemonNode(line)
-    all_pokemon_dict[line] = []
-    all_pokemon_dict[line].append(active_pokemon)
+    all_pokemon_dict[line] = active_pokemon
 
     while(line):
         line = f.readline()
@@ -52,8 +65,7 @@ with open("gen9ou-1695.txt", "r") as f:
             if line == barline: # barline again means next mon
                 pokemon_name = clean_padding(f.readline())
                 active_pokemon = PokemonNode(pokemon_name)
-                all_pokemon_dict[pokemon_name] = []
-                all_pokemon_dict[pokemon_name].append(active_pokemon)
+                all_pokemon_dict[pokemon_name] = active_pokemon
             elif "Raw count" in line:
                 raw_count = re.search("[0-9]+", line).group()
                 active_pokemon.count = raw_count
@@ -62,8 +74,17 @@ with open("gen9ou-1695.txt", "r") as f:
                 while cc_name != "fin":
                     pos = f.tell()
                     cc_name, rating, switch, ko = read_check_counter(f, barline)
-                    if cc_name != "fin":
-                        print(str(active_pokemon) + "<-- " + cc_name)
+                    #if cc_name != "fin":
+                        # print(str(active_pokemon) + "<-- " + cc_name)
+                f.seek(pos)
+            elif "Teammates" in line: # parse some checks and counters
+                teammate_name = ""
+                while teammate_name != "fin":
+                    pos = f.tell()
+                    teammate_name, freq = read_teammate(f, barline)
+                    if teammate_name != "fin":
+                        # print(str(active_pokemon) + "<--> " + teammate_name)
+                        active_pokemon.teammates.append(teammate_name)
                 f.seek(pos)
 
 ### now we do another round ###
@@ -73,12 +94,13 @@ with open("gen9ou-1695.txt", "r") as f:
     #line = f.readline() # should have first mon with some padding
     #line = (clean_padding(line))
 
-    # all_pokemon.append(active_pokemon)
-
 # print(all_pokemon_dict)
-#for mon in all_pokemon_dict:
-#    print(mon)
 
+
+for name, mon in all_pokemon_dict.items():
+    print(mon)
+    print(mon.getTeammates())
 
 #print (str(all_pokemon_dict["Dragapult"]))
 #print (str(all_pokemon_dict["Araquanid"]))
+# print(all_pokemon_dict["Kingambit"])
