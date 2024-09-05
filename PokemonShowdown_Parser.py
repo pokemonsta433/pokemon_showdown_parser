@@ -10,10 +10,10 @@ class PokemonNode:
     def __str__(self):
         return self.name
 
-    def getTeammates(self):
+    def get_num_teammates(self):
         return len(self.teammates)
 
-    def getTeammates(self):
+    def get_teammates(self):
         return self.teammates
 all_pokemon_dict = {}
 
@@ -30,7 +30,7 @@ def read_check_counter(f, barline):
     if line == barline:
         return "fin", 0, 0, 0
     line = clean_padding(line)
-    name_end = re.search(r"\d", line).start() -1
+    name_end = re.search(r" \d", line).start() -1
     counter_name = line[0 : name_end]
     # find the rating or the percentage or whatever
     line = f.readline()
@@ -42,10 +42,11 @@ def read_teammate(f, barline):
     if line == barline:
         return "fin", 0
     line = clean_padding(line)
-    name_end = re.search(r"\d", line).start() -1
+    name_end = re.search(r" \d", line).start()
     teammate_name = line[0 : name_end]
+    teammate_freq = line[name_end+1 : name_end+5] # the next 4 chars
     # do more stats with this line
-    return teammate_name, 0
+    return teammate_name, float(teammate_freq)
 
 
 with open("gen9ou-1695.txt", "r") as f:
@@ -84,7 +85,7 @@ with open("gen9ou-1695.txt", "r") as f:
                     teammate_name, freq = read_teammate(f, barline)
                     if teammate_name != "fin":
                         # print(str(active_pokemon) + "<--> " + teammate_name)
-                        active_pokemon.teammates.append(teammate_name)
+                        active_pokemon.teammates.append((teammate_name, freq))
                 f.seek(pos)
 
 ### now we do another round ###
@@ -97,10 +98,11 @@ with open("gen9ou-1695.txt", "r") as f:
 # print(all_pokemon_dict)
 
 
+"""
 for name, mon in all_pokemon_dict.items():
     print(mon)
     print(mon.getTeammates())
-
+"""
 #print (str(all_pokemon_dict["Dragapult"]))
 #print (str(all_pokemon_dict["Araquanid"]))
-# print(all_pokemon_dict["Kingambit"])
+print(all_pokemon_dict["Kingambit"].teammates)
