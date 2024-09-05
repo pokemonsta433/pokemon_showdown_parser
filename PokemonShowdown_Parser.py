@@ -6,6 +6,7 @@ from PIL import Image
 import mplcursors
 import requests
 from io import BytesIO
+import pygraphviz
 
 class PokemonNode:
     def __init__(self, name):
@@ -126,7 +127,6 @@ G = nx.Graph()
 
 G.add_nodes_from(monlist)
 # Create a shell layout with explicit node names in nlist
-
 nlist = []
 for mon in monlist:
         nlist.append([mon])  # Ensure both nodes are included in nlist
@@ -135,18 +135,17 @@ for mon in monlist:
 
 for name, mon in all_pokemon_dict.items():
     for teammate in mon.get_teammates():
-        G.add_edge(name, teammate[0])
+        G.add_edge(name, teammate[0], weight=0.1)
 
-"""
-***FOR WEIGHTED EDGES***
+
 edges = G.edges(data=True)
 edge_weights = [d['weight'] for (u, v, d) in edges]
-"""
+
 
 
 # Draw the graph with weighted edges
 nx.draw_shell(G, nlist=nlist, node_color='none', with_labels=False)
-pos = nx.shell_layout(G)
+pos = nx.nx_agraph.pygraphviz_layout(G)
 nx.draw_networkx_edges(G, pos)
 
 
@@ -169,6 +168,7 @@ for mon in monlist:
 # Adding hover functionality to display labels on hover
 
 labels = {node: node for node in G.nodes()}  # Create a label dictionary
+print(labels)
 nodes = [plt.scatter(*pos[node], alpha=0) for node in G.nodes()]  # Invisible node markers
 
 # Use mplcursors to display node labels on hover
@@ -176,7 +176,7 @@ cursor = mplcursors.cursor(nodes, hover=True)
 
 @cursor.connect("add")
 def on_add(sel):
-    node = list(G.nodes)[sel.index]
+    node = list(G.nodes)[sel.target.index]
     sel.annotation.set_text(labels[node])
 
 # Display the plot
