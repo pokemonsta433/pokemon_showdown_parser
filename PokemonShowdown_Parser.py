@@ -58,8 +58,6 @@ def read_teammate(f, barline):
     # do more stats with this line
     return teammate_name, float(teammate_freq)
 
-
-
 with open("gen9ou-1695.txt", "r") as f:
     active_pokemon = " "
 
@@ -111,6 +109,8 @@ with open("gen9ou-1695.txt", "r") as f:
 
 # print(all_pokemon_dict)
 
+PRUNING_THRESH = 111111.0
+
 spritesFolder = 'https://play.pokemonshowdown.com/sprites/dex/'
 # Function to get an image from a URL
 def get_image_from_url(url):
@@ -132,23 +132,19 @@ for mon in monlist:
         nlist.append([mon])  # Ensure both nodes are included in nlist
 # Generate the shell layout positions for the nodes
 
-
 for name, mon in all_pokemon_dict.items():
     for teammate in mon.get_teammates():
-        G.add_edge(name, teammate[0], weight=0.1)
-
+        appearances = teammate[1] * 0.01 * float(mon.count)
+        if appearances > PRUNING_THRESH:
+            G.add_edge(name, teammate[0], weight=0.1)
 
 edges = G.edges(data=True)
 edge_weights = [d['weight'] for (u, v, d) in edges]
-
-
 
 # Draw the graph with weighted edges
 nx.draw_shell(G, nlist=nlist, node_color='none', with_labels=False)
 pos = nx.nx_agraph.pygraphviz_layout(G)
 nx.draw_networkx_edges(G, pos)
-
-
 
 for mon in monlist:
     url = spritesFolder + mon.replace(' ', '').lower() + '.png'  # Replace with the actual URL of the image
@@ -168,7 +164,7 @@ for mon in monlist:
 # Adding hover functionality to display labels on hover
 
 labels = {node: node for node in G.nodes()}  # Create a label dictionary
-print(labels)
+# print(labels)
 nodes = [plt.scatter(*pos[node], alpha=0) for node in G.nodes()]  # Invisible node markers
 
 # Use mplcursors to display node labels on hover
@@ -181,4 +177,3 @@ def on_add(sel):
 
 # Display the plot
 plt.show()
-
