@@ -1,4 +1,11 @@
 import re # regex
+import matplotlib.pyplot as plt
+import networkx as nx
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+from PIL import Image
+import mplcursors
+import requests
+from io import BytesIO
 
 class PokemonNode:
     def __init__(self, name):
@@ -43,10 +50,13 @@ def read_teammate(f, barline):
         return "fin", 0
     line = clean_padding(line)
     name_end = re.search(r" +\d", line).start()
+    name_end = re.search(r" +\d", line).start()
     teammate_name = line[0 : name_end]
     teammate_freq = line[name_end+1 : name_end+5] # the next 4 chars
+    
     # do more stats with this line
     return teammate_name, float(teammate_freq)
+
 
 
 with open("gen9ou-1695.txt", "r") as f:
@@ -85,11 +95,12 @@ with open("gen9ou-1695.txt", "r") as f:
                     teammate_name, freq = read_teammate(f, barline)
                     if teammate_name != "fin":
                         # print(str(active_pokemon) + "<--> " + teammate_name)
+
                         active_pokemon.teammates.append((teammate_name, freq))
                         if teammate_name not in all_pokemon_dict:
                             all_pokemon_dict[teammate_name] = PokemonNode(teammate_name)
                 f.seek(pos)
-
+###
 ### now we do another round ###
 #with open("gen9ou-1695.txt", "r") as f:
     #active_pokemon = " "
@@ -99,13 +110,75 @@ with open("gen9ou-1695.txt", "r") as f:
 
 # print(all_pokemon_dict)
 
+spritesFolder = 'https://play.pokemonshowdown.com/sprites/dex/'
+# Function to get an image from a URL
+def get_image_from_url(url):
+    response = requests.get(url)
+    img_data = BytesIO(response.content)  # Convert the response content to a BytesIO object
+    return Image.open(img_data)  # Open the image using PIL
+
+monlist = []
+for name, mon in all_pokemon_dict.items():
+    monlist.append(name)
+
+# Create a graph and add nodes
+G = nx.Graph()
+
+G.add_nodes_from(monlist)
+# Create a shell layout with explicit node names in nlist
+
+nlist = []
+for mon in monlist:
+        nlist.append([mon])  # Ensure both nodes are included in nlist
+# Generate the shell layout positions for the nodes
+
+
+for name, mon in all_pokemon_dict.items():
+    for teammate in mon.get_teammates():
+        G.add_edge(name, teammate[0])
 
 """
-for name, mon in all_pokemon_dict.items():
-    print(mon)
-    print(mon.getTeammates())
+***FOR WEIGHTED EDGES***
+edges = G.edges(data=True)
+edge_weights = [d['weight'] for (u, v, d) in edges]
 """
-#print (str(all_pokemon_dict["Dragapult"]))
-#print (str(all_pokemon_dict["Araquanid"]))
-print(all_pokemon_dict["Kingambit"].teammates)
-print(all_pokemon_dict["Rhydon"].teammates)
+
+
+# Draw the graph with weighted edges
+nx.draw_shell(G, nlist=nlist, node_color='none', with_labels=False)
+pos = nx.shell_layout(G)
+nx.draw_networkx_edges(G, pos)
+
+
+
+for mon in monlist:
+    url = spritesFolder + mon.replace(' ', '').lower() + '.png'  # Replace with the actual URL of the image
+    try:
+        img = get_image_from_url(url)
+    except:
+        img = get_image_from_url('https://play.pokemonshowdown.com/sprites/itemicons/0.png')
+    img = OffsetImage(img, zoom=0.1)  # Adjust the zoom to fit the node size
+    if mon in pos:  # Ensure the node has a position
+        node_pos = pos[mon]
+        ab = AnnotationBbox(img, (node_pos[0], node_pos[1]), frameon=False)
+        ax = plt.gca()
+        ax.add_artist(ab)
+
+# Load and add the image for 'Kingambit' from a URL
+
+# Adding hover functionality to display labels on hover
+
+labels = {node: node for node in G.nodes()}  # Create a label dictionary
+nodes = [plt.scatter(*pos[node], alpha=0) for node in G.nodes()]  # Invisible node markers
+
+# Use mplcursors to display node labels on hover
+cursor = mplcursors.cursor(nodes, hover=True)
+
+@cursor.connect("add")
+def on_add(sel):
+    node = list(G.nodes)[sel.index]
+    sel.annotation.set_text(labels[node])
+
+# Display the plot
+plt.show()
+
