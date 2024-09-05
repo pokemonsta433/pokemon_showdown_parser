@@ -42,7 +42,7 @@ def read_teammate(f, barline):
     if line == barline:
         return "fin", 0
     line = clean_padding(line)
-    name_end = re.search(r" \d", line).start()
+    name_end = re.search(r" +\d", line).start()
     teammate_name = line[0 : name_end]
     teammate_freq = line[name_end+1 : name_end+5] # the next 4 chars
     # do more stats with this line
@@ -86,6 +86,8 @@ with open("gen9ou-1695.txt", "r") as f:
                     if teammate_name != "fin":
                         # print(str(active_pokemon) + "<--> " + teammate_name)
                         active_pokemon.teammates.append((teammate_name, freq))
+                        if teammate_name not in all_pokemon_dict:
+                            all_pokemon_dict[teammate_name] = PokemonNode(teammate_name)
                 f.seek(pos)
 
 ### now we do another round ###
@@ -106,3 +108,4 @@ for name, mon in all_pokemon_dict.items():
 #print (str(all_pokemon_dict["Dragapult"]))
 #print (str(all_pokemon_dict["Araquanid"]))
 print(all_pokemon_dict["Kingambit"].teammates)
+print(all_pokemon_dict["Rhydon"].teammates)
