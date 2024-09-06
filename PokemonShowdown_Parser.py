@@ -54,8 +54,6 @@ def read_teammate(f, barline):
     name_end = re.search(r" +\d", line).start()
     teammate_name = line[0 : name_end]
     teammate_freq = line[name_end+1 : name_end+5] # the next 4 chars
-    
-    # do more stats with this line
     return teammate_name, float(teammate_freq)
 
 with open("gen9ou-1695.txt", "r") as f:
@@ -109,7 +107,7 @@ with open("gen9ou-1695.txt", "r") as f:
 
 # print(all_pokemon_dict)
 
-PRUNING_THRESH = 111111.0
+PRUNING_THRESH = 5000 #11111.0
 
 spritesFolder = 'https://play.pokemonshowdown.com/sprites/dex/'
 # Function to get an image from a URL
@@ -124,27 +122,26 @@ for name, mon in all_pokemon_dict.items():
 
 # Create a graph and add nodes
 G = nx.Graph()
-
 G.add_nodes_from(monlist)
-# Create a shell layout with explicit node names in nlist
-nlist = []
-for mon in monlist:
-        nlist.append([mon])  # Ensure both nodes are included in nlist
-# Generate the shell layout positions for the nodes
 
 for name, mon in all_pokemon_dict.items():
     for teammate in mon.get_teammates():
         appearances = teammate[1] * 0.01 * float(mon.count)
         if appearances > PRUNING_THRESH:
             G.add_edge(name, teammate[0], weight=0.1)
+            # print(name + ", " + teammate[0] + ", " + str(appearances))
+
+# delete the pruned nodes
+no_edge_nodes = [node for node in G.nodes if G.degree(node) == 0]
+for node in no_edge_nodes:
+    G.remove_node(node)
 
 edges = G.edges(data=True)
 edge_weights = [d['weight'] for (u, v, d) in edges]
 
 # Draw the graph with weighted edges
-nx.draw_shell(G, nlist=nlist, node_color='none', with_labels=False)
-pos = nx.nx_agraph.pygraphviz_layout(G)
-nx.draw_networkx_edges(G, pos)
+pos = nx.nx_agraph.pygraphviz_layout(G, prog='sfdp')
+nx.draw(G, pos=pos, node_color='none', with_labels=False)
 
 for mon in monlist:
     url = spritesFolder + mon.replace(' ', '').lower() + '.png'  # Replace with the actual URL of the image
@@ -152,21 +149,15 @@ for mon in monlist:
         img = get_image_from_url(url)
     except:
         img = get_image_from_url('https://play.pokemonshowdown.com/sprites/itemicons/0.png')
-    img = OffsetImage(img, zoom=0.1)  # Adjust the zoom to fit the node size
+    img = OffsetImage(img, zoom=0.15)  # Adjust the zoom to fit the node size
     if mon in pos:  # Ensure the node has a position
         node_pos = pos[mon]
         ab = AnnotationBbox(img, (node_pos[0], node_pos[1]), frameon=False)
         ax = plt.gca()
         ax.add_artist(ab)
 
-# Load and add the image for 'Kingambit' from a URL
-
-# Adding hover functionality to display labels on hover
-
 labels = {node: node for node in G.nodes()}  # Create a label dictionary
-# print(labels)
-nodes = [plt.scatter(*pos[node], alpha=0) for node in G.nodes()]  # Invisible node markers
-
+nodes = nx.draw_networkx_nodes(G, pos, node_color='none', node_size=100, alpha=0) # Invisible node markers
 # Use mplcursors to display node labels on hover
 cursor = mplcursors.cursor(nodes, hover=True)
 
